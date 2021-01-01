@@ -1,26 +1,54 @@
 const express = require('express');
-const socket = require('socket.io');
+var cors = require('cors')
+const webSocket = require('ws');
 const app = express()
-const port = 3000
+let activeUsers = new Map()
+
+const wss = new webSocket.Server({ port: 8082 });
+
+wss.on("connection", ws => {
+  console.log('WS connected')
+  
+  const id = wss.getUniqueID();
+
+  ws.on("message", msg => {
+    const message = JSON.parse(msg);
+    const firstName = message.name;
+
+    if (firstName) {
+      activeUsers.set(id, {
+        id: id,
+        name: firstName
+      })
+      console.log(`[message] Data received from server Name: ${firstName}`);
+  
+      activeUsers.forEach((user) => {
+        console.log('Users', user);
+      })
+
+      ws.send(JSON.stringify([...activeUsers]));
+    } else {
+
+      console.log('Different message')
+    }
+
+  })
+})
+app.use(cors())
 
 app.get('/', (req, res) => {
-  res.send('Hello World!')
+  res.json({msg:'Hello World!'});
 })
 
-const server = app.listen(port, () => {
-  console.log(`Example app listening at http://localhost:${port}`)
-})
+wss.getUniqueID = function () {
+  function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+  }
+  return s4() + s4() + '-' + s4();
+};
 
-const io = socket(server);
-
-io.on('connection', (socket) => {
-    console.log('New Connection', socket.id);
-
-    socket.on('chat', (data) => {
-        io.sockets.emit('chat', data);
-    })
-    socket.on('typing', (data) => {
-        io.sockets.emit('typing', data);
-    })
-
-});
+// io.on('end', (socket) => {
+//   activeUsers.delete(socket.id);
+//   socket.disconnect(0);
+//   console.log('New Connection', activeUsers);
+// });
