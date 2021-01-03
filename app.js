@@ -25,8 +25,9 @@ wss.on("connection", ws => {
       activeUsers.forEach((user) => {
         console.log('Users', user);
       })
-
-      ws.send(JSON.stringify([...activeUsers]));
+      const activeUsersWithoutTheNewUser = new Map(activeUsers);
+      activeUsersWithoutTheNewUser.delete(id);
+      ws.send(JSON.stringify([...activeUsersWithoutTheNewUser]));
     } else {
 
       console.log('Different message')
